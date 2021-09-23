@@ -13,7 +13,7 @@ INC=-I ./include
 OBJS = $(addsuffix .o, $(basename $(wildcard $(SRC)/*.cpp)))
 
 $(TARGET): $(OBJS)
-	make -p lib
+	mkdir -p lib
 	ar cqs $@ $^
 
 %.o: %.cpp
