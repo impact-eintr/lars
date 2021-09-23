@@ -1,8 +1,3 @@
-##
-# lars
-#
-# @file
-# @version 0.1
 TARGET=lib/liblreactor.a
 CXX=g++
 CFLAGS=-g -O2 -Wall -fPIC -Wno-deprecated
@@ -13,7 +8,7 @@ INC=-I ./include
 OBJS = $(addsuffix .o, $(basename $(wildcard $(SRC)/*.cpp)))
 
 $(TARGET): $(OBJS)
-	make -p lib
+	mkdir -p lib
 	ar cqs $@ $^
 
 %.o: %.cpp
@@ -23,6 +18,3 @@ $(TARGET): $(OBJS)
 
 clean:
 	-rm -f src/*.o $(TARGET)
-
-
-# end
