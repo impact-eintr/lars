@@ -59,12 +59,13 @@ tcp_server::tcp_server(const char *ip, uint16_t port) {
   }
 }
 
+// 开始提供创建链接服务
 void tcp_server::do_accept() {
   int connfd;
-  while (true) {
+  while(true) {
     // accept与客户端创建链接
     printf("begin accept\n");
-    connfd = accept(_sockfd, (struct sockaddr *)&_connaddr, &_addrlen);
+    connfd = accept(_sockfd, (struct sockaddr*)&_connaddr, &_addrlen);
     if (connfd == -1) {
       if (errno == EINTR) {
         fprintf(stderr, "accept errno=EINTR\n");
@@ -80,27 +81,39 @@ void tcp_server::do_accept() {
         exit(1);
       }
     } else {
-      // accept succ!
-      // TODO 添加心跳机制
+      if (errno == EINTR) {
+        fprintf(stderr, "accept errno=EINTR\n");
+        continue;
+      } else if (errno == EMFILE) {
+        // 建立链接过多 资源不够
+        fprintf(stderr, "accept errno=EMFILE\n");
+        break;
+      } else {
+        // accept succ
+        // TODO 添加心跳机制
 
-      // TODO 消息队列机制
+        // TODO 添加消息队列机制
 
-      int writed;
-      const char *data = "hello Lars\n";
-      do {
-        writed = write(connfd, data, strlen(data) + 1);
-      } while (writed == -1 && errno == EINTR);
+        int writed;
+        const char *data = "hello Lars\n";
+        do {
+          writed =write(connfd, data, strlen(data)+1);
+        } while (writed == -1 && errno == EINTR);
 
-      if (writed > 0) {
-        // succ
-        printf("write succ!\n");
-      }
-      if (writed == -1 && errno == EAGAIN) {
-        writed = 0; //不是错误，仅返回0表示此时不可继续写
+        if (writed == -1 && errno == EAGAIN) {
+          writed = 0;
+        }
+
+        if (writed > 0) {
+          // succ
+          printf("write succ!\n");
+        }
       }
     }
   }
 }
 
-//链接对象释放的析构
-tcp_server::~tcp_server() { close(_sockfd); }
+// 链接对象释放的析构
+tcp_server::~tcp_server() {
+  close(_sockfd);
+}
