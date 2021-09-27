@@ -58,7 +58,7 @@ int input_buf::read_data(int fd) {
       io_buf *new_buf =
           buf_pool::instance()->alloc_buf(need_read + _buf->length);
 
-      if (new_buf == NULL) {
+      if (new_buf == nullptr) {
         fprintf(stderr, "no ilde buf for alloc\n");
         return -1;
       }
@@ -95,34 +95,35 @@ int input_buf::read_data(int fd) {
   return alread_read;
 }
 
-//取出读到的数据
+// 取出读到的数据
 const char *input_buf::data() const {
-  return _buf != NULL ? _buf->data + _buf->head : NULL;
+  return _buf != nullptr ? _buf->data + _buf->head : nullptr;
 }
 
-//重置缓冲区
+// 重置缓冲区
 void input_buf::adjust() {
-  if (_buf != NULL) {
+  if (_buf != nullptr) {
     _buf->adjust();
   }
 }
 
-//将一段数据 写到一个reactor_buf中
+// 将一段数据写到一个reactor_buf中
 int output_buf::send_data(const char *data, int datalen) {
-  if (_buf == NULL) {
+  if (_buf == nullptr) {
     //如果io_buf为空,从内存池申请
     _buf = buf_pool::instance()->alloc_buf(datalen);
-    if (_buf == NULL) {
+    if (_buf == nullptr) {
       fprintf(stderr, "no idle buf for alloc\n");
       return -1;
     }
-  } else {
+  }
+  else {
     //如果io_buf可用，判断是否够存
     assert(_buf->head == 0);
     if (_buf->capacity - _buf->length < datalen) {
       //不够存，冲内存池申请
-      io_buf *new_buf = buf_pool::instance()->alloc_buf(datalen + _buf->length);
-      if (new_buf == NULL) {
+      io_buf *new_buf = buf_pool::instance()->alloc_buf(datalen+_buf->length);
+      if (new_buf == nullptr) {
         fprintf(stderr, "no ilde buf for alloc\n");
         return -1;
       }
@@ -135,35 +136,31 @@ int output_buf::send_data(const char *data, int datalen) {
     }
   }
 
-  //将data数据拷贝到io_buf中,拼接到后面
+  // 将data数据拷贝到io_buf中 拼接到后面
   memcpy(_buf->data + _buf->length, data, datalen);
   _buf->length += datalen;
-
   return 0;
 }
 
-//将reactor_buf中的数据写到一个fd中
+// 将reactor_buf中的数据写到一个fd中
 int output_buf::write2fd(int fd) {
-  assert(_buf != NULL && _buf->head == 0);
+  assert(_buf != nullptr && _buf->head == 0);
 
   int already_write = 0;
 
   do {
     already_write = write(fd, _buf->data, _buf->length);
-  } while (already_write == -1 &&
-           errno == EINTR); // systemCall引起的中断，继续写
+  } while (already_write == -1 && errno == EINTR);
 
   if (already_write > 0) {
-    //已经处理的数据清空
+    // 已经处理的数据清空
     _buf->pop(already_write);
-    //未处理数据前置，覆盖老数据
+    // 未处理数据前置 覆盖老数据
     _buf->adjust();
   }
-
-  //如果fd非阻塞，可能会得到EAGAIN错误
+  // 如果fd非阻塞 可能得到EAGAIN错误
   if (already_write == -1 && errno == EAGAIN) {
-    already_write = 0; //不是错误，仅仅返回0，表示目前是不可以继续写的
+    already_write = 0; // 不是错误 仅仅返回0 便是当前暂时不可以继续写
   }
-
   return already_write;
 }

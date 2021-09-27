@@ -1,4 +1,5 @@
 #include "buf_pool.h"
+#include "io_buf.h"
 #include <cassert>
 #include <cstdio>
 #include <pthread.h>
@@ -35,7 +36,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   prev = _pool[m4K];
   // 4K的io_buf预先开辟5000个，约20MB供开发者使用
   for (int i = 1; i < 5000; i++) {
-    prev->next = new (m4K);
+    prev->next = new io_buf(m4K);
     if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m4K error");
       exit(1);

@@ -1,15 +1,18 @@
 #include "tcp_server.h"
+#include "io_buf.h"
+#include "reactor_buf.h"
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <netinet/in.h>
-#include <strings.h>
 #include <string.h>
-#include <unistd.h>
+#include <strings.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 tcp_server::tcp_server(const char *ip, uint16_t port) {
   bzero(&_connaddr, sizeof(_connaddr));
@@ -62,10 +65,10 @@ tcp_server::tcp_server(const char *ip, uint16_t port) {
 // 开始提供创建链接服务
 void tcp_server::do_accept() {
   int connfd;
-  while(true) {
+  while (true) {
     // accept与客户端创建链接
     printf("begin accept\n");
-    connfd = accept(_sockfd, (struct sockaddr*)&_connaddr, &_addrlen);
+    connfd = accept(_sockfd, (struct sockaddr *)&_connaddr, &_addrlen);
     if (connfd == -1) {
       if (errno == EINTR) {
         fprintf(stderr, "accept errno=EINTR\n");
@@ -81,34 +84,48 @@ void tcp_server::do_accept() {
         exit(1);
       }
     } else {
-      if (errno == EINTR) {
-        fprintf(stderr, "accept errno=EINTR\n");
-        continue;
-      } else if (errno == EMFILE) {
-        // 建立链接过多 资源不够
-        fprintf(stderr, "accept errno=EMFILE\n");
-        break;
-      } else {
-        // accept succ
-        // TODO 添加心跳机制
+      // accecpt succ
+      int ret = 0;
+      input_buf ibuf;
+      output_buf obuf;
 
-        // TODO 添加消息队列机制
+      char *msg = nullptr;
+      int msg_len = 0;
+      do {
+        ret = ibuf.read_data(connfd);
+        if (ret == -1) {
+          fprintf(stderr, "ibuf read_data error\n");
+          break;
+        }
+        printf("ibuf.length() = %d\n", ibuf.length());
 
-        int writed;
-        const char *data = "hello Lars\n";
-        do {
-          writed =write(connfd, data, strlen(data)+1);
-        } while (writed == -1 && errno == EINTR);
+        //将读到的数据放在msg中
+        msg_len = ibuf.length();
+        msg = (char*)malloc(msg_len);
+        bzero(msg, msg_len);
+        memcpy(msg, ibuf.data(), msg_len);
+        ibuf.pop(msg_len);
+        ibuf.adjust();
 
-        if (writed == -1 && errno == EAGAIN) {
-          writed = 0;
+        printf("recv data = %s\n", msg);
+
+        //回显数据
+        obuf.send_data(msg, msg_len);
+        while (obuf.length()) {
+          int write_ret = obuf.write2fd(connfd);
+          if (write_ret == -1) {
+            fprintf(stderr, "write connfd error\n");
+            return;
+          } else if (write_ret == 0) {
+            //不是错误，表示此时不可写
+            break;
+          }
         }
 
-        if (writed > 0) {
-          // succ
-          printf("write succ!\n");
-        }
-      }
+        free(msg);
+
+      } while (ret != 0);
+      close(connfd);
     }
   }
 }
