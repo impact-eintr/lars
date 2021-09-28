@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
+#define debug
+
 reactor_buf::reactor_buf() { _buf = nullptr; }
 
 reactor_buf::~reactor_buf() { clear(); }
@@ -41,6 +43,9 @@ int input_buf::read_data(int fd) {
     fprintf(stderr, "ioctl FIONREAD\n");
     return -1;
   }
+#ifdef debug
+    printf("ioctl need_read: %d\n", need_read);
+#endif
 
   if (_buf == nullptr) {
     // 如果io_buf为空 从内存池申请
@@ -75,13 +80,20 @@ int input_buf::read_data(int fd) {
   int alread_read = 0;
   do {
     // 读取的数据拼接到之前的数据后
+#ifdef debug
+    printf("need_read: %d\n", need_read);
+#endif
     if (need_read == 0) {
       // 可能是read阻塞读数据的模式 对方未写入数据
-      // TODO 测试一下为什么要这么做
       alread_read = read(fd, _buf->data + _buf->length, m4K);
-      printf("alread_read: %d\n", alread_read);
+#ifdef debug
+      printf("alread_read whit m4K: %d\n", alread_read);
+#endif
     } else {
       alread_read = read(fd, _buf->data + _buf->length, need_read);
+#ifdef debug
+      printf("alread_read: %d\n", alread_read);
+#endif
     }
   } while (alread_read == -1 &&
            errno == EINTR); // systemCall引起的中断 继续读取 防止可重入导致读取中途失败
