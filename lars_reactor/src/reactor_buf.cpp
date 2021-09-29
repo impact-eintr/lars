@@ -3,8 +3,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
-#define debug
-
 reactor_buf::reactor_buf() { _buf = nullptr; }
 
 reactor_buf::~reactor_buf() { clear(); }

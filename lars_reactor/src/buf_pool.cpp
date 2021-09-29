@@ -47,7 +47,7 @@ buf_pool::buf_pool() : _total_mem(0) {
 
   //----> 开辟16K buf 内存池
   _pool[m16K] = new io_buf(m16K);
-  if (_pool[m16K] == NULL) {
+  if (_pool[m16K] == nullptr) {
     fprintf(stderr, "new io_buf m16K error");
     exit(1);
   }
@@ -56,7 +56,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   // 16K的io_buf 预先开辟1000个，约16MB供开发者使用
   for (int i = 1; i < 1000; i++) {
     prev->next = new io_buf(m16K);
-    if (prev->next == NULL) {
+    if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m16K error");
       exit(1);
     }
@@ -66,7 +66,7 @@ buf_pool::buf_pool() : _total_mem(0) {
 
   //----> 开辟64K buf 内存池
   _pool[m64K] = new io_buf(m64K);
-  if (_pool[m64K] == NULL) {
+  if (_pool[m64K] == nullptr) {
     fprintf(stderr, "new io_buf m64K error");
     exit(1);
   }
@@ -75,7 +75,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   // 64K的io_buf 预先开辟500个，约32MB供开发者使用
   for (int i = 1; i < 500; i++) {
     prev->next = new io_buf(m64K);
-    if (prev->next == NULL) {
+    if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m64K error");
       exit(1);
     }
@@ -85,7 +85,7 @@ buf_pool::buf_pool() : _total_mem(0) {
 
   //----> 开辟256K buf 内存池
   _pool[m256K] = new io_buf(m256K);
-  if (_pool[m256K] == NULL) {
+  if (_pool[m256K] == nullptr) {
     fprintf(stderr, "new io_buf m256K error");
     exit(1);
   }
@@ -94,7 +94,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   // 256K的io_buf 预先开辟200个，约50MB供开发者使用
   for (int i = 1; i < 200; i++) {
     prev->next = new io_buf(m256K);
-    if (prev->next == NULL) {
+    if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m256K error");
       exit(1);
     }
@@ -104,7 +104,7 @@ buf_pool::buf_pool() : _total_mem(0) {
 
   //----> 开辟1M buf 内存池
   _pool[m1M] = new io_buf(m1M);
-  if (_pool[m1M] == NULL) {
+  if (_pool[m1M] == nullptr) {
     fprintf(stderr, "new io_buf m1M error");
     exit(1);
   }
@@ -113,7 +113,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   // 1M的io_buf 预先开辟50个，约50MB供开发者使用
   for (int i = 1; i < 50; i++) {
     prev->next = new io_buf(m1M);
-    if (prev->next == NULL) {
+    if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m1M error");
       exit(1);
     }
@@ -123,7 +123,7 @@ buf_pool::buf_pool() : _total_mem(0) {
 
   //----> 开辟4M buf 内存池
   _pool[m4M] = new io_buf(m4M);
-  if (_pool[m4M] == NULL) {
+  if (_pool[m4M] == nullptr) {
     fprintf(stderr, "new io_buf m4M error");
     exit(1);
   }
@@ -132,7 +132,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   // 4M的io_buf 预先开辟20个，约80MB供开发者使用
   for (int i = 1; i < 20; i++) {
     prev->next = new io_buf(m4M);
-    if (prev->next == NULL) {
+    if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m4M error");
       exit(1);
     }
@@ -142,7 +142,7 @@ buf_pool::buf_pool() : _total_mem(0) {
 
   //----> 开辟8M buf 内存池
   _pool[m8M] = new io_buf(m8M);
-  if (_pool[m8M] == NULL) {
+  if (_pool[m8M] == nullptr) {
     fprintf(stderr, "new io_buf m8M error");
     exit(1);
   }
@@ -151,7 +151,7 @@ buf_pool::buf_pool() : _total_mem(0) {
   // 8M的io_buf 预先开辟10个，约80MB供开发者使用
   for (int i = 1; i < 10; i++) {
     prev->next = new io_buf(m8M);
-    if (prev->next == NULL) {
+    if (prev->next == nullptr) {
       fprintf(stderr, "new io_buf m8M error");
       exit(1);
     }
@@ -179,13 +179,13 @@ io_buf *buf_pool::alloc_buf(int N) {
   } else if (N <= m8M) {
     index = m8M;
   } else {
-    return NULL;
+    return nullptr;
   }
 
   // 2 如果该组已经没有 需要额外申请 那么需要加锁保护
   pthread_mutex_lock(&_mutex);
 
-  if (_pool[index] == NULL) {
+  if (_pool[index] == nullptr) {
     if (_total_mem + index/1024 >= EXTRA_MEM_LIMIT) {
       // 当前开辟的空间已经超过最大限制
       fprintf(stderr, "already use too many memory!\n");

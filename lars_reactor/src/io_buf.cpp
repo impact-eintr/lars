@@ -14,11 +14,14 @@ void io_buf::clear() {
   length = head = 0;
 }
 
-// 将处理过的数据清空 将为处理的数据提前至数据首地址
+// 将处理过的数据清空 将没有处理的数据提前至数据首地址
 void io_buf::adjust() {
   if (head != 0) {
+#ifdef debug
+      printf("[adjust]%d %d \n", head, length);
+#endif
     if (length != 0) {
-      memmove(data, data+head, length); // length是当前有效数据的长度
+      memmove(data, data + head, length); // length是当前有效数据的长度
     }
     head = 0;
   }
@@ -35,4 +38,7 @@ void io_buf::copy(const io_buf *other) {
 void io_buf::pop(int len) {
   length -= len;
   head += len;
+#ifdef debug
+      printf("[pop]%d %d \n", head, length);
+#endif
 }
