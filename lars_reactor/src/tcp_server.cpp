@@ -14,7 +14,7 @@
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
+#include "tcp_conn.h"
 
 // 临时的收发消息
 struct message {
@@ -187,7 +187,14 @@ void tcp_server::do_accept() {
       }
     } else {
       // accecpt succ
-      this->_loop->add_io_event(connfd, server_rd_callback, EPOLLIN, &msg);
+      tcp_conn *conn = new tcp_conn(connfd, _loop);
+      if (conn == nullptr) {
+        fprintf(stderr, "new tcp_conn error\n");
+        exit(1);
+      }
+      // 这样，每次accept成功之后，创建一个与当前客户端套接字绑定的tcp_conn对象。
+      // 在构造里就完成了基本的对于EPOLLIN事件的监听和回调动作.
+      printf("get new connection succ!\n");
       break;
     }
   }
