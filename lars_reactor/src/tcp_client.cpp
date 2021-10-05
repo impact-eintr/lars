@@ -4,7 +4,9 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/socket.h>
+#include "message.h"
 #include "unistd.h"
+#include <assert.h>
 
 static void connection_delay(event_loop *loop, int fd, void *args);
 
@@ -108,21 +110,68 @@ static void connection_delay(event_loop *loop, int fd, void *args) {
 }
 
 static void write_callback(event_loop *loop, int fd, void *args) {
-
+  tcp_client* cli = (tcp_client*)args;
+  cli->do_write();
 }
 
 static void read_callback(event_loop *loop, int fd, void *args) {
-
-}
-
-
-// 发送amessage方法
-int tcp_client::send_message(const char *data, int msglen, int msgid) {
-
+  tcp_client *cli = (tcp_client*)args;
+  cli->do_read();
 }
 
 // 处理读业务
 int tcp_client::do_read() {
+  // 确定已经成功建立链接
+  assert(connected == true);
+  // 一次性全部读取出来
+  // 得到缓冲区有多少字节要被读取，然后将字节数放入b里面
+  int need_read = 0;
+  if (ioctl(_sockfd, FIONREAD, &need_read) == -1) {
+    fprintf(stderr, "ioctl FIONREAD error");
+    return -1;
+  }
+
+  // 确保_buf可可以容纳可读数据
+  assert(need_read <= _ibuf.capacity-_ibuf.length);
+
+  int ret = 0;
+  do {
+    ret = read(_sockfd, _ibuf.data+_ibuf.length, need_read);
+  } while(ret == -1 && errno == EINTR);
+
+  if (ret == 0) {
+    // 对端关闭
+    if (_name != nullptr) {
+      printf("%s client: connection close by peer!\n", _name);
+    } else {
+      printf("client:connection close by peer!\n");
+    }
+    clean_conn();
+    return -1;
+  } else if (ret == -1) {
+    fprintf(stderr, "client: do_read(), error\n");
+    clean_conn();
+    return -1;
+  }
+
+  assert(ret == need_read);
+  _ibuf.length += ret;
+
+  // 解包
+  msg_head head;
+  int msgid, length;
+  while(_ibuf.length >= MESSAGE_HEAD_LEN) {
+    memcpy(&head, _ibuf.data+_ibuf.head/*未处理的头部索引*//, MESSAGE_HEAD_LEN);
+    msgid = head.msgid;
+    length = head.msglen;
+
+    /*
+     *if (length + MESSAGE_HEAD_LEN < _ibuf.length) {
+     *  break;
+     }
+     * */
+
+  }
 
 }
 
@@ -130,6 +179,12 @@ int tcp_client::do_read() {
 int tcp_client::do_write() {
 
 }
+
+// 发送amessage方法
+int tcp_client::send_message(const char *data, int msglen, int msgid) {
+
+}
+
 
 // 释放链接资源
 void tcp_client::clean_conn() {
