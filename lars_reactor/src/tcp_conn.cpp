@@ -2,6 +2,7 @@
 #include "event_loop.h"
 #include "message.h"
 #include <cstdint>
+#include <cstdio>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -12,7 +13,7 @@
 #include <unistd.h>
 
 // 回显业务
-void callback_busi(const char *data, uint32_t len, int msgid, void *args,
+void callback_echo(const char *data, uint32_t len, int msgid, void *args,
                    tcp_conn *conn) {
   conn->send_message(data, len, msgid);
 }
@@ -54,12 +55,12 @@ void tcp_conn::do_read() {
   // 从套接字读取数据
   int ret = ibuf.read_data(_connfd);
   if (ret == -1) {
-    fprintf(stderr, "read data from docket\n");
+    fprintf(stderr, "read data from socket\n");
     this->clean_conn();
     return;
   } else if (ret == 0) {
     // 对端正常关闭
-    printf("connection closed by peer");
+    printf("connection closed by peer\n");
     clean_conn();
     return;
   }
@@ -87,11 +88,11 @@ void tcp_conn::do_read() {
     // 头部处理完了 往后偏移MESSAGE_HEAD_LEN长度
     ibuf.pop(MESSAGE_HEAD_LEN);
 
-    // 处理ibufdata() 业务数据
+    // 处理ibuf.data() 业务数据
     printf("read data: %s\n", ibuf.data());
 
     // 回显业务
-    callback_busi(ibuf.data(),head.msglen,head.msgid, nullptr, this);
+    callback_echo(ibuf.data(),head.msglen,head.msgid, nullptr, this);
 
     // 消息体处理完了 往后偏移msglen长度
     ibuf.pop(head.msglen);
@@ -120,6 +121,7 @@ void tcp_conn::do_write() {
       break;
     }
   }
+  printf("server do_write() over\n");
 
   if (obuf.length() == 0) {
     // 数据已经全部写完 将_connfd的写事件取消掉

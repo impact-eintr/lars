@@ -1,36 +1,35 @@
-#ifndef IO_BUF_H_
-#define IO_BUF_H_
 #pragma once
 
+/*
+    定义一个 buffer存放数据的结构
+ * */
 class io_buf {
 public:
-  // 构造，创建一个io_buf对象
-  io_buf(int size);
+    //构造，创建一个io_buf对象
+    io_buf(int size);
 
-  // 清空数据
-  void clear();
+    //清空数据
+    void clear();
 
-  // 将已经处理过的数据清空;将为处理的数据提前到数据首地址
-  void adjust();
+    //将已经处理过的数据，清空,将未处理的数据提前至数据首地址
+    void adjust();
 
-  // 将其他io_buf对象数据拷贝到自己手中
-  void copy(const io_buf *other);
+    //将其他io_buf对象数据考本到自己中
+    void copy(const io_buf *other);
 
-  // 处理长度为len的数据 和移动head和修改length
-  void pop(int len);
+    //处理长度为len的数据，移动head和修正length
+    void pop(int len);
 
-  // 如果存在多个buffer采用链表的形式链接起来
-  io_buf *next;
+    //如果存在多个buffer，是采用链表的形式链接起来
+    io_buf *next;
 
-  // 当前buffer的缓存容量大小
-  int capacity;
-  // 当前buffer有效数据的长度
-  int length;
-  // 未处理数据的头部索引
-  int head;
-  // 当前io_buf所保存的数据地址
-  char* data;
-
+    //当前buffer的缓存容量大小
+    int capacity;
+    //当前buffer有效数据长度
+    int length;
+    //未处理数据的头部位置索引
+    int head;
+    //当前io_buf所保存的数据地址
+    char *data;
 };
 
-#endif // IO_BUF_H_

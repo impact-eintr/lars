@@ -20,10 +20,7 @@ void event_loop::event_process(){
   while(true) {
     io_event_map_it ev_it;
 
-    int nfds = epoll_wait(_epfd, _fired_evs, MAXEVENTS, 1000);
-    #ifdef debug
-    printf("[nfds]%d\n",nfds);
-    #endif
+    int nfds = epoll_wait(_epfd, _fired_evs, MAXEVENTS, 10);
     for (int i = 0;i < nfds;i++) {
       // 通过触发的fd找到对应的绑定事件
       ev_it = _io_evs.find(_fired_evs[i].data.fd);
@@ -77,7 +74,7 @@ void event_loop::add_io_event(int fd, io_callback *proc, int mask, void *args) {
   } else {
     // 如果有操作就是MOD
     // 添加事件标志位
-    final_mask = mask;
+    final_mask = it->second.mask | mask;
     op = EPOLL_CTL_MOD;
   }
   // 4 注册回调函数

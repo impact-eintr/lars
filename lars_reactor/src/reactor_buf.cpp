@@ -32,6 +32,7 @@ void reactor_buf::clear() {
   }
 }
 
+// -----------------input------------------------
 int input_buf::read_data(int fd) {
   int need_read; // 硬件有多少数据是可以读取的
   // 一次性读出所有的数据
@@ -41,9 +42,6 @@ int input_buf::read_data(int fd) {
     fprintf(stderr, "ioctl FIONREAD\n");
     return -1;
   }
-#ifdef debug
-    printf("ioctl need_read: %d\n", need_read);
-#endif
 
   if (_buf == nullptr) {
     // 如果io_buf为空 从内存池申请
@@ -78,20 +76,11 @@ int input_buf::read_data(int fd) {
   int alread_read = 0;
   do {
     // 读取的数据拼接到之前的数据后
-#ifdef debug
-    printf("need_read: %d\n", need_read);
-#endif
     if (need_read == 0) {
       // 可能是read阻塞读数据的模式 对方未写入数据
       alread_read = read(fd, _buf->data + _buf->length, m4K);
-#ifdef debug
-      printf("alread_read whit m4K: %d\n", alread_read);
-#endif
     } else {
       alread_read = read(fd, _buf->data + _buf->length, need_read);
-#ifdef debug
-      printf("alread_read: %d\n", alread_read);
-#endif
     }
   } while (alread_read == -1 &&
            errno == EINTR); // systemCall引起的中断 继续读取 防止可重入导致读取中途失败
@@ -117,6 +106,7 @@ void input_buf::adjust() {
   }
 }
 
+// -----------------output------------------------
 // 将一段数据写到一个reactor_buf中
 int output_buf::send_data(const char *data, int datalen) {
   if (_buf == nullptr) {
@@ -131,7 +121,7 @@ int output_buf::send_data(const char *data, int datalen) {
     //如果io_buf可用，判断是否够存
     assert(_buf->head == 0);
     if (_buf->capacity - _buf->length < datalen) {
-      //不够存，冲内存池申请
+      //不够存，从内存池申请
       io_buf *new_buf = buf_pool::instance()->alloc_buf(datalen+_buf->length);
       if (new_buf == nullptr) {
         fprintf(stderr, "no ilde buf for alloc\n");
