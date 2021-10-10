@@ -1,4 +1,5 @@
 #include "tcp_conn.h"
+#include "tcp_server.h"
 #include "event_loop.h"
 #include "message.h"
 #include <cstdint>
@@ -47,7 +48,7 @@ tcp_conn::tcp_conn(int connfd, event_loop *loop) {
   _loop->add_io_event(_connfd, conn_rd_callback, EPOLLIN, this);
 
   // 将该链接集成到对应的tcp_server中
-  // TODO
+  tcp_server::increase_conn(_connfd, this);
 }
 
 // 处理读业务
@@ -172,7 +173,7 @@ int tcp_conn::send_message(const char *data, int msglen, int msgid) {
 void tcp_conn::clean_conn() {
   // 链接清理工作
   // 将该链接从tcp_server中摘除
-  // TODO
+  tcp_server::decrease_conn(_connfd);
 
   // 将该链接从event_loop中摘除
   _loop->del_io_event(_connfd);

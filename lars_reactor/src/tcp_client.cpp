@@ -126,7 +126,12 @@ static void write_callback(event_loop *loop, int fd, void *args) {
 static void read_callback(event_loop *loop, int fd, void *args) {
   tcp_client *cli = (tcp_client*)args;
   printf("client read_callback()\n");
-  cli->do_read();
+  if (cli->do_read() == -2) {
+    printf("clean conn, del socket!\n");
+    close(fd);
+
+    exit(0);
+  }
 }
 
 // 处理读业务
@@ -154,14 +159,14 @@ int tcp_client::do_read() {
 
   if (ret == 0) {
     // 对端关闭
-    if (_name != NULL) {
+    if (_name != nullptr) {
       printf("%s client: connection close by peer!\n", _name);
     } else {
       printf("client: connection close by peer!\n");
     }
 
     clean_conn();
-    return -1;
+    return -2;
   } else if (ret == -1) {
     fprintf(stderr, "client: do_read() , error\n");
     clean_conn();
