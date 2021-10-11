@@ -16,6 +16,7 @@
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include "message.h"
 
 #define debug
 
@@ -54,6 +55,9 @@ void tcp_server::get_conn_num(int *curr_conn) {
   *curr_conn = _curr_conns;
   pthread_mutex_unlock(&_conns_mutex);
 }
+
+// 消息分发路由
+msg_router tcp_server::router;
 
 void accept_callback(event_loop *loop, int fd, void *args) {
   tcp_server *server = (tcp_server *)args;
@@ -115,7 +119,7 @@ tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port) {
   // 创建链接信息数组
   conns = new tcp_conn
       *[_max_conns +
-        3]; // //3是因为stdin,stdout,stderr
+        3]; // 3是因为stdin,stdout,stderr
             // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
   if (conns == nullptr) {
     fprintf(stderr, "new cons[%d] error\n", _max_conns);

@@ -23,7 +23,6 @@ tcp_client::tcp_client(event_loop *loop, const char *ip, unsigned short port, co
   _ibuf(m4M),
   _obuf(m4M){
   _sockfd = -1;
-  _msg_callback = nullptr;
   _name = name;
   _loop = loop;
 
@@ -94,14 +93,16 @@ static void connection_delay(event_loop *loop, int fd, void *args) {
     printf("connect %s:%d succ!\n", inet_ntoa(cli->_server_addr.sin_addr),
            ntohs(cli->_server_addr.sin_port));
 
-    // 建立连接成功之后，主动发送send_message
+    // ================ 发送msgid：1 =====
+    //建立连接成功之后，主动发送send_message
+    const char *msg = "hello lars!";
     int msgid = 1;
-    for (int i = 0;i < 10;i++) {
-      char str[1024];
-      sprintf(str, "hello lars[%d]", i);
-      const char *msg = str;
-      cli->send_message(msg, strlen(msg), msgid);
-    }
+    cli->send_message(msg, strlen(msg), msgid);
+
+    // ================ 发送msgid：2 =====
+    const char *msg2 = "hello eintr!";
+    msgid = 2;
+    cli->send_message(msg2, strlen(msg2), msgid);
 
     loop->add_io_event(fd, read_callback, EPOLLIN, cli);
 
@@ -186,10 +187,14 @@ int tcp_client::do_read() {
 
     // 头部全部读取完毕
     _ibuf.pop(MESSAGE_HEAD_LEN);
-    // 交给业务函数处理
-    if (_msg_callback != nullptr) {
-      this->_msg_callback(_ibuf.data + _ibuf.head, length, msgid, this, nullptr);
-    }
+    // TODO 删除 交给业务函数处理
+    //if (_msg_callback != nullptr) {
+    //  this->_msg_callback(_ibuf.data + _ibuf.head, length, msgid, this, nullptr);
+    //}
+
+    // 消息路由分发
+    this->_router.call(msgid, length, _ibuf.data + _ibuf.head, this);
+
     // 数据区域处理完毕
     _ibuf.pop(length);
   }

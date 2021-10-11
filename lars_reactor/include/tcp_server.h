@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include "event_loop.h"
 #include "tcp_conn.h"
+#include "message.h"
 
 class tcp_server
 { 
@@ -12,6 +13,11 @@ public:
 
   //开始提供创建链接服务
   void do_accept();
+
+  // 注册消息路由回调函数
+  void add_msg_router(int msgid, msg_callback *cb, void *user_data = nullptr) {
+    router.register_msg_router(msgid, cb, user_data);
+  }
 
   //链接对象释放的析构
   ~tcp_server();
@@ -30,7 +36,10 @@ public:
   static void increase_conn(int connfd, tcp_conn *conn); // 新增一个新建的链接
   static void decrease_conn(int connfd); // 减少一个断开的链接
   static void get_conn_num(int *curr_conn); // 得到当前链接的刻度
-  static tcp_conn **conns; // 全部已经在线的链接信息
+  static tcp_conn **conns; // 全部已经在线的链接信息s
+  // 消息分发路由
+  static msg_router router;
+
 private:
   // TODO
   // 从配置文件中读取
