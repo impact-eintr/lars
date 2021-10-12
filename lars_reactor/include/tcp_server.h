@@ -4,7 +4,7 @@
 #include "event_loop.h"
 #include "tcp_conn.h"
 #include "message.h"
-
+#include "thread_pool.h"
 class tcp_server
 { 
 public: 
@@ -67,4 +67,5 @@ private:
   static int _max_conns;  // 最大client链接个数
   static int _curr_conns; // 当前链接刻度
   static pthread_mutex_t _conns_mutex; // 保护_curr_conns刻度修改的锁
+  thread_pool *_thread_pool;
 };

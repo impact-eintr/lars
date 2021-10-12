@@ -13,9 +13,9 @@
 #include <unistd.h>
 
 #include "net_connection.h"
-#include "tcp_server.h"
 #include "reactor_buf.h"
 #include "tcp_conn.h"
+#include "tcp_server.h"
 
 #define debug
 
@@ -60,19 +60,18 @@ msg_router tcp_server::router;
 
 // 创建链接之后的回调函数
 conn_callback tcp_server::conn_start_cb = nullptr;
-void * tcp_server::conn_start_cb_args = nullptr;
+void *tcp_server::conn_start_cb_args = nullptr;
 
 // 创建链接之后的回调函数
 conn_callback tcp_server::conn_close_cb = nullptr;
-void * tcp_server::conn_close_cb_args = nullptr;
+void *tcp_server::conn_close_cb_args = nullptr;
 
 void accept_callback(event_loop *loop, int fd, void *args) {
   tcp_server *server = (tcp_server *)args;
   server->do_accept();
 }
 
-tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port)
-{
+tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port) {
   bzero(&_connaddr, sizeof(_connaddr));
 
   // 忽略一些信号 SIGHUP SIGPIPE
@@ -126,11 +125,22 @@ tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port)
   _max_conns = MAX_CONNS;
   // 创建链接信息数组
   conns = new tcp_conn
-      *[_max_conns + 3]; // 3是因为stdin,stdout,stderr
-                         // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
+      *[_max_conns +
+        3]; // 3是因为stdin,stdout,stderr
+            // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
   if (conns == nullptr) {
     fprintf(stderr, "new cons[%d] error\n", _max_conns);
     exit(1);
+  }
+
+  // ==============  创建线程池 ====================
+  int thread_cnt = 3; // TODO从配置文件中读取
+  if (thread_cnt > 0) {
+    _thread_pool = new thread_pool(thread_cnt);
+    if (_thread_pool == nullptr) {
+      fprintf(stderr, "tcp_server new thread_pool error\n");
+      exit(1);
+    }
   }
 
   // 注册_socket读事件 --> accept处理
@@ -160,6 +170,7 @@ void tcp_server::do_accept() {
       }
     } else {
       // accecpt succ
+
       int cur_conns = 0;
       get_conn_num(&cur_conns);
 
@@ -168,16 +179,28 @@ void tcp_server::do_accept() {
         fprintf(stderr, "so many connections, max = %d\n", _max_conns);
         close(connfd);
       } else {
-        tcp_conn *conn = new tcp_conn(connfd, _loop);
-        if (conn == nullptr) {
-          fprintf(stderr, "new tcp_conn error\n");
-          exit(1);
+        // 判断是否要开启多线程模式
+        if (_thread_pool != nullptr) {
+          // 选择一个线程来处理
+          thread_queue<task_msg>* queue = _thread_pool->get_thread();
+          // 创建一个新建链接的消息任务
+          task_msg task;
+          task.type = task_msg::NEW_CONN;
+          task.connfd = connfd;
+          // 添加到了消息队列中，让对应的thread进程的event_loop处理
+          queue->send(task);
+        } else {
+          tcp_conn *conn = new tcp_conn(connfd, _loop);
+          if (conn == nullptr) {
+            fprintf(stderr, "new tcp_conn error\n");
+            exit(1);
+          }
+          // 这样，每次accept成功之后，创建一个与当前客户端套接字绑定的tcp_conn对象。
+          // 在构造里就完成了基本的对于EPOLLIN事件的监听和回调动作.
+          printf("get new connection succ!\n");
+          break;
         }
-        // 这样，每次accept成功之后，创建一个与当前客户端套接字绑定的tcp_conn对象。
-        // 在构造里就完成了基本的对于EPOLLIN事件的监听和回调动作.
-        printf("get new connection succ!\n");
       }
-      break;
     }
   }
 }
