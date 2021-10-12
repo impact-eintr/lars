@@ -14,4 +14,5 @@ public:
     //virtual int get_fd() = 0;
 };
 
-
+// 创建链接/销毁链接 要触发的 回调函数类型
+typedef void (* conn_callback)(net_connection *conn, void *args);

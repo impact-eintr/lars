@@ -1,7 +1,3 @@
-#include "tcp_conn.h"
-#include "tcp_server.h"
-#include "event_loop.h"
-#include "message.h"
 #include <cstdint>
 #include <cstdio>
 #include <fcntl.h>
@@ -12,6 +8,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "tcp_conn.h"
+#include "tcp_server.h"
+#include "event_loop.h"
+#include "message.h"
 
 // 回显业务
 void callback_echo(const char *data, uint32_t len, int msgid, void *args,
@@ -43,6 +44,11 @@ tcp_conn::tcp_conn(int connfd, event_loop *loop) {
   // 设置TCP_NODELAY禁止做读写缓存 降低小包延迟
   int op = 1;
   setsockopt(_connfd, IPPROTO_TCP, TCP_NODELAY, &op, sizeof(op));
+
+  // 如果用户注册了链接建立hook, 则调用
+  if (tcp_server::conn_start_cb) {
+    tcp_server::conn_start_cb(this, tcp_server::conn_start_cb_args);
+  }
 
   // 将该链接的读事件让event_loop监控
   _loop->add_io_event(_connfd, conn_rd_callback, EPOLLIN, this);
@@ -93,9 +99,6 @@ void tcp_conn::do_read() {
 
     // 消息包路由模式
     tcp_server::router.call(head.msgid, head.msglen, ibuf.data(), this);
-
-    // TODO 删除 回显业务
-    //callback_echo(ibuf.data(),head.msglen,head.msgid, nullptr, this);
 
     // 消息体处理完了 往后偏移msglen长度
     ibuf.pop(head.msglen);
@@ -173,6 +176,11 @@ int tcp_conn::send_message(const char *data, int msglen, int msgid) {
 
 // 销毁tcp_conn
 void tcp_conn::clean_conn() {
+  // 如果注册了销毁Hook函数，则调用
+  if (tcp_server::conn_close_cb) {
+    tcp_server::conn_close_cb(this, tcp_server::conn_close_cb_args);
+  }
+
   // 链接清理工作
   // 将该链接从tcp_server中摘除
   tcp_server::decrease_conn(_connfd);

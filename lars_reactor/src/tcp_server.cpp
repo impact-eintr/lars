@@ -1,8 +1,3 @@
-#include "tcp_server.h"
-#include "buf_pool.h"
-#include "io_buf.h"
-#include "reactor_buf.h"
-#include "tcp_conn.h"
 #include <arpa/inet.h>
 #include <asm-generic/socket.h>
 #include <cstdint>
@@ -16,7 +11,11 @@
 #include <sys/signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "message.h"
+
+#include "net_connection.h"
+#include "tcp_server.h"
+#include "reactor_buf.h"
+#include "tcp_conn.h"
 
 #define debug
 
@@ -59,12 +58,21 @@ void tcp_server::get_conn_num(int *curr_conn) {
 // 消息分发路由
 msg_router tcp_server::router;
 
+// 创建链接之后的回调函数
+conn_callback tcp_server::conn_start_cb = nullptr;
+void * tcp_server::conn_start_cb_args = nullptr;
+
+// 创建链接之后的回调函数
+conn_callback tcp_server::conn_close_cb = nullptr;
+void * tcp_server::conn_close_cb_args = nullptr;
+
 void accept_callback(event_loop *loop, int fd, void *args) {
   tcp_server *server = (tcp_server *)args;
   server->do_accept();
 }
 
-tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port) {
+tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port)
+{
   bzero(&_connaddr, sizeof(_connaddr));
 
   // 忽略一些信号 SIGHUP SIGPIPE
@@ -118,9 +126,8 @@ tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port) {
   _max_conns = MAX_CONNS;
   // 创建链接信息数组
   conns = new tcp_conn
-      *[_max_conns +
-        3]; // 3是因为stdin,stdout,stderr
-            // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
+      *[_max_conns + 3]; // 3是因为stdin,stdout,stderr
+                         // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
   if (conns == nullptr) {
     fprintf(stderr, "new cons[%d] error\n", _max_conns);
     exit(1);

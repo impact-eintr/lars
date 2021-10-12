@@ -1,5 +1,4 @@
 #include "tcp_client.h"
-#include "buf_pool.h"
 #include <arpa/inet.h>
 #include <asm-generic/errno.h>
 #include <stdio.h>
@@ -20,8 +19,12 @@ static void read_callback(event_loop *loop, int fd, void *args);
 
 //初始化客户端套接字
 tcp_client::tcp_client(event_loop *loop, const char *ip, unsigned short port, const char *name):
-  _ibuf(m4M),
-  _obuf(m4M){
+  _conn_start_cb(nullptr),
+  _conn_start_cb_args(nullptr),
+  _conn_close_cb(nullptr),
+  _conn_close_cb_args(nullptr),
+  _ibuf(4194304),
+  _obuf(4194304){
   _sockfd = -1;
   _name = name;
   _loop = loop;
@@ -55,12 +58,17 @@ void tcp_client::do_connect() {
     // 创建链接成功
     connected = true;
 
+    if (_conn_start_cb != nullptr) {
+      _conn_start_cb(this, _conn_start_cb_args);
+    }
+
     // 注册读回调
     _loop->add_io_event(_sockfd, read_callback, EPOLLIN, this);
     // 如果写缓冲区有数据，那么也需要触发写回调
     if (this->_obuf.length != 0) {
       _loop->add_io_event(_sockfd, write_callback, EPOLLIN, this);
     }
+
     printf("connect %s:%d succ!\n", inet_ntoa(_server_addr.sin_addr), ntohs(_server_addr.sin_port));
   } else {
     if (errno == EINPROGRESS) {
@@ -92,6 +100,12 @@ static void connection_delay(event_loop *loop, int fd, void *args) {
 
     printf("connect %s:%d succ!\n", inet_ntoa(cli->_server_addr.sin_addr),
            ntohs(cli->_server_addr.sin_port));
+
+
+    // 调用开发者注册的创建链接Hook函数 上一步没成功
+    if (cli->_conn_start_cb != nullptr) {
+      cli->_conn_start_cb(cli, cli->_conn_start_cb_args);
+    }
 
     // ================ 发送msgid：1 =====
     //建立连接成功之后，主动发送send_message
@@ -281,6 +295,11 @@ void tcp_client::clean_conn() {
     close(_sockfd);
   }
   connected = false;
+
+  // 调用开发者注册的销毁链接之前触发的Hook
+  if (_conn_close_cb != nullptr) {
+    _conn_close_cb(this, _conn_close_cb_args);
+  }
 
   // 重新链接
   this->do_connect();
