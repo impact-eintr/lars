@@ -107,16 +107,10 @@ static void connection_delay(event_loop *loop, int fd, void *args) {
       cli->_conn_start_cb(cli, cli->_conn_start_cb_args);
     }
 
-    // ================ 发送msgid：1 =====
-    //建立连接成功之后，主动发送send_message
+    // 建立连接成功之后，主动发送send_message
     const char *msg = "hello lars!";
     int msgid = 1;
     cli->send_message(msg, strlen(msg), msgid);
-
-    // ================ 发送msgid：2 =====
-    const char *msg2 = "hello eintr!";
-    msgid = 2;
-    cli->send_message(msg2, strlen(msg2), msgid);
 
     loop->add_io_event(fd, read_callback, EPOLLIN, cli);
 

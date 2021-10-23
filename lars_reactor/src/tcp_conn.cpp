@@ -32,7 +32,7 @@ static void conn_wt_callback(event_loop *loop, int fd, void *args) {
   conn->do_write();
 }
 
-// 初始化tcp
+// 初始化tcp_conn
 tcp_conn::tcp_conn(int connfd, event_loop *loop) {
   _connfd = connfd;
   _loop = loop;

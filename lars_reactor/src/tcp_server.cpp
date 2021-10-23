@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "config_file.h"
 #include "net_connection.h"
 #include "reactor_buf.h"
 #include "tcp_conn.h"
@@ -35,7 +36,7 @@ pthread_mutex_t tcp_server::_conns_mutex = PTHREAD_MUTEX_INITIALIZER;
 // 新增一个新建的连接
 void tcp_server::increase_conn(int connfd, tcp_conn *conn) {
   pthread_mutex_lock(&_conns_mutex);
-  conns[connfd] = nullptr;
+  conns[connfd] = conn;
   _curr_conns++;
   pthread_mutex_unlock(&_conns_mutex);
 }
@@ -122,19 +123,20 @@ tcp_server::tcp_server(event_loop *loop, const char *ip, uint16_t port) {
   _loop = loop;
 
   // ============== 创建链接管理 ================
-  _max_conns = MAX_CONNS;
+  _max_conns = config_file::instance()->GetNumber("reactor", "maxConn", 128);
   // 创建链接信息数组
-  conns = new tcp_conn
-      *[_max_conns +
-        3]; // 3是因为stdin,stdout,stderr
-            // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
+  // 3是因为stdin,stdout,stderr
+  // 已经被占用，再新开fd一定是从3开始,所以不加3就会栈溢出
+  conns = new tcp_conn *[_max_conns + 3];
   if (conns == nullptr) {
     fprintf(stderr, "new cons[%d] error\n", _max_conns);
     exit(1);
   }
+  bzero(conns, sizeof(tcp_conn)*(_max_conns+3));
 
   // ==============  创建线程池 ====================
-  int thread_cnt = 3; // TODO从配置文件中读取
+  int thread_cnt =
+      config_file::instance()->GetNumber("reactor", "threadNum", 8);
   if (thread_cnt > 0) {
     _thread_pool = new thread_pool(thread_cnt);
     if (_thread_pool == nullptr) {
@@ -182,7 +184,7 @@ void tcp_server::do_accept() {
         // 判断是否要开启多线程模式
         if (_thread_pool != nullptr) {
           // 选择一个线程来处理
-          thread_queue<task_msg>* queue = _thread_pool->get_thread();
+          thread_queue<task_msg> *queue = _thread_pool->get_thread();
           // 创建一个新建链接的消息任务
           task_msg task;
           task.type = task_msg::NEW_CONN;

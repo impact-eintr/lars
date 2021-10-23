@@ -12,6 +12,9 @@ public:
   // 获取一个thread
   thread_queue<task_msg>* get_thread();
 
+  // 发送一个task任务给thread_pool中的全部thread
+  void send_task(task_func, void *args = nullptr);
+
 private:
   // _queue是当前thread_pool全部的消息队列头指针
   thread_queue<task_msg> ** _queues;

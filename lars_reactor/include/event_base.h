@@ -15,7 +15,7 @@ typedef void io_callback(event_loop *loop, int fd, void *args);
  * */
 struct io_event 
 {
-    io_event():read_callback(NULL),write_callback(NULL),rcb_args(NULL),wcb_args(NULL) {}
+    io_event():read_callback(nullptr),write_callback(nullptr),rcb_args(nullptr),wcb_args(nullptr) {}
 
     int mask; //EPOLLIN EPOLLOUT
     io_callback *read_callback; //EPOLLIN事件 触发的回调 
