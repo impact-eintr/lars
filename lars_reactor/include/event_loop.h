@@ -5,7 +5,6 @@
  *
  * */
 #include "event_base.h"
-#include "task_msg.h"
 #include <ext/hash_map>
 #include <ext/hash_set>
 #include <sys/epoll.h>
