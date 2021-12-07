@@ -4,12 +4,6 @@
 #include <cstdio>
 #include <pthread.h>
 
-// 单例对象
-buf_pool *buf_pool::_instance = nullptr;
-
-// 用于保证创建单例对象的init()只执行一次的锁
-pthread_once_t buf_pool::_once = PTHREAD_ONCE_INIT;
-
 // 用于保护内存池链表修改的互斥锁
 pthread_mutex_t buf_pool::_mutex = PTHREAD_MUTEX_INITIALIZER;
 

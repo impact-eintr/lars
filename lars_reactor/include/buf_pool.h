@@ -26,17 +26,10 @@ enum MEM_CAP {
 class buf_pool 
 {
 public:
-    //初始化单例对象
-    static void init() {
-        //创建单例
-        _instance = new buf_pool();
-    }
-
     //获取单例方法
-    static buf_pool *instance() {
-        //保证init方法在这个进程执行中 只被执行一次
-        pthread_once(&_once, init);
-        return _instance;
+    static buf_pool &instance() {
+        static buf_pool instance;
+        return instance;
     }
 
     //开辟一个io_buf
@@ -47,25 +40,18 @@ public:
     //重置一个io_buf
     void revert(io_buf *buffer);
 
-    
 private:
     buf_pool();
 
     //拷贝构造私有化
-    buf_pool(const buf_pool&);
-    const buf_pool& operator=(const buf_pool&);
+    buf_pool(const buf_pool&)=delete;
+    const buf_pool& operator=(const buf_pool&)=delete;
 
     //所有buffer的一个map集合句柄
     pool_t _pool;
 
     //总buffer池的内存大小 单位为KB
     uint64_t _total_mem;
-
-    //单例对象
-    static buf_pool *_instance;
-
-    //用于保证创建单例的init方法只执行一次的锁
-    static pthread_once_t _once;
 
     //用户保护内存池链表修改的互斥锁
     static pthread_mutex_t _mutex;

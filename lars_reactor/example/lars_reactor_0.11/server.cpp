@@ -68,7 +68,7 @@ int main() {
   printf("ip = %s, port = %d\n", ip.c_str(), port);
 
   server = new tcp_server(&loop, ip.c_str(), port);
-
+  //printf("test1\n");
   //注册消息业务路由
   server->add_msg_router(1, callback_busi);
   server->add_msg_router(2, print_busi);

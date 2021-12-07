@@ -19,7 +19,7 @@ void reactor_buf::pop(int len) {
   // 如果这时_buf的可用长度已经为0
   if (_buf->length == 0) {
     // 将_buf重新放回buf_pool中
-    buf_pool::instance()->revert(_buf);
+    buf_pool::instance().revert(_buf);
     _buf = nullptr;
   }
 }
@@ -27,7 +27,7 @@ void reactor_buf::pop(int len) {
 void reactor_buf::clear() {
   if (_buf != nullptr) {
     // 将_buf重新放回buf_pool中
-    buf_pool::instance()->revert(_buf);
+    buf_pool::instance().revert(_buf);
     _buf = nullptr;
   }
 }
@@ -45,7 +45,7 @@ int input_buf::read_data(int fd) {
 
   if (_buf == nullptr) {
     // 如果io_buf为空 从内存池申请
-    _buf = buf_pool::instance()->alloc_buf(need_read);
+    _buf = buf_pool::instance().alloc_buf(need_read);
     if (_buf == nullptr) {
       fprintf(stderr, "no idle buf for alloc\n");
       return -1;
@@ -57,7 +57,7 @@ int input_buf::read_data(int fd) {
     if (_buf->capacity - _buf->length < (int)need_read) {
       // 不够存
       io_buf *new_buf =
-          buf_pool::instance()->alloc_buf(need_read + _buf->length);
+          buf_pool::instance().alloc_buf(need_read + _buf->length);
 
       if (new_buf == nullptr) {
         fprintf(stderr, "no ilde buf for alloc\n");
@@ -67,7 +67,7 @@ int input_buf::read_data(int fd) {
       // 将之前_buff中的数据拷贝到新申请的buf中
       new_buf->copy(_buf);
       // 将之前的_buf放回到内存池中
-      buf_pool::instance()->revert(_buf);
+      buf_pool::instance().revert(_buf);
       // 新申请的buf成为当前的io_buf
       _buf = new_buf;
     }
@@ -111,7 +111,7 @@ void input_buf::adjust() {
 int output_buf::send_data(const char *data, int datalen) {
   if (_buf == nullptr) {
     //如果io_buf为空,从内存池申请
-    _buf = buf_pool::instance()->alloc_buf(datalen);
+    _buf = buf_pool::instance().alloc_buf(datalen);
     if (_buf == nullptr) {
       fprintf(stderr, "no idle buf for alloc\n");
       return -1;
@@ -122,7 +122,7 @@ int output_buf::send_data(const char *data, int datalen) {
     assert(_buf->head == 0);
     if (_buf->capacity - _buf->length < datalen) {
       //不够存，从内存池申请
-      io_buf *new_buf = buf_pool::instance()->alloc_buf(datalen+_buf->length);
+      io_buf *new_buf = buf_pool::instance().alloc_buf(datalen+_buf->length);
       if (new_buf == nullptr) {
         fprintf(stderr, "no ilde buf for alloc\n");
         return -1;
@@ -130,7 +130,7 @@ int output_buf::send_data(const char *data, int datalen) {
       //将之前的_buf的数据考到新申请的buf中
       new_buf->copy(_buf);
       //将之前的_buf放回内存池中
-      buf_pool::instance()->revert(_buf);
+      buf_pool::instance().revert(_buf);
       //新申请的buf成为当前io_buf
       _buf = new_buf;
     }
