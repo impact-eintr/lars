@@ -45,7 +45,7 @@ void tcp_server::increase_conn(int connfd, tcp_conn *conn) {
 void tcp_server::decrease_conn(int connfd) {
   pthread_mutex_lock(&_conns_mutex);
   conns[connfd] = nullptr;
-  _curr_conns++;
+  _curr_conns--;
   pthread_mutex_unlock(&_conns_mutex);
 }
 

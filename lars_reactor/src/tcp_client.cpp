@@ -38,7 +38,7 @@ tcp_client::tcp_client(event_loop *loop, const char *ip, unsigned short port, co
   _addrlen = sizeof(_server_addr);
 
   this->do_connect();
-} // ​ 这里初始化tcp_client链接信息，然后调用do_connect()创建链接.
+} // 这里初始化tcp_client链接信息，然后调用do_connect()创建链接.
 
 // 创建链接
 void tcp_client::do_connect() {
@@ -195,10 +195,6 @@ int tcp_client::do_read() {
 
     // 头部全部读取完毕
     _ibuf.pop(MESSAGE_HEAD_LEN);
-    // TODO 删除 交给业务函数处理
-    //if (_msg_callback != nullptr) {
-    //  this->_msg_callback(_ibuf.data + _ibuf.head, length, msgid, this, nullptr);
-    //}
 
     // 消息路由分发
     this->_router.call(msgid, length, _ibuf.data + _ibuf.head, this);
