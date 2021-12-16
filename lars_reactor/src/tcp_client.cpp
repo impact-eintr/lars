@@ -66,7 +66,7 @@ void tcp_client::do_connect() {
     _loop->add_io_event(_sockfd, read_callback, EPOLLIN, this);
     // 如果写缓冲区有数据，那么也需要触发写回调
     if (this->_obuf.length != 0) {
-      _loop->add_io_event(_sockfd, write_callback, EPOLLIN, this);
+      _loop->add_io_event(_sockfd, write_callback, EPOLLOUT, this);
     }
 
     printf("connect %s:%d succ!\n", inet_ntoa(_server_addr.sin_addr), ntohs(_server_addr.sin_port));
@@ -106,11 +106,6 @@ static void connection_delay(event_loop *loop, int fd, void *args) {
     if (cli->_conn_start_cb != nullptr) {
       cli->_conn_start_cb(cli, cli->_conn_start_cb_args);
     }
-
-    // 建立连接成功之后，主动发送send_message
-    const char *msg = "hello lars!";
-    int msgid = 1;
-    cli->send_message(msg, strlen(msg), msgid);
 
     loop->add_io_event(fd, read_callback, EPOLLIN, cli);
 
